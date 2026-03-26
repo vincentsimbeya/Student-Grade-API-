@@ -1,7 +1,7 @@
-from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Path
 from pydantic import BaseModel, Field
+from typing import Optional, List, Literal
 
 app = FastAPI(
     title="Task List API",
@@ -18,19 +18,20 @@ next_task_id = 1
 class TaskCreate(BaseModel):
     title: str = Field(..., min_length=2, max_length=100, description="Task title")
     description: Optional[str] = Field(None, max_length=300, description="Task description")
-
+    priority: Literal["Low", "Medium", "High"] = "Medium" 
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=2, max_length=100)
     description: Optional[str] = Field(None, max_length=300)
     completed: Optional[bool] = None
-
+    priority: Optional[Literal["Low", "Medium", "High"]] = None
 
 class Task(BaseModel):
     id: int
     title: str
     description: Optional[str] = None
     completed: bool
+    priority: Literal["Low", "Medium", "High"]
 
 
 @app.get("/", tags=["Health"])
@@ -50,6 +51,7 @@ def create_task(task: TaskCreate):
         "title": task.title,
         "description": task.description,
         "completed": False,
+        "priority": task.priority
     }
     tasks_db.append(new_task)
     next_task_id += 1
@@ -79,6 +81,8 @@ def update_task(task_update: TaskUpdate, task_id: int = Path(..., gt=0)):
                 task["description"] = task_update.description
             if task_update.completed is not None:
                 task["completed"] = task_update.completed
+            if task_update.priority is not None:
+                task["priority"] = task_update.priority
             return task
     raise HTTPException(status_code=404, detail="Task not found")
 
