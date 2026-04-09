@@ -1,0 +1,143 @@
+// src/App.js
+import React, { useState } from "react";
+import axios from "axios";
+import { Alert, Button, Card, Form, Container, Row, Col, ListGroup } from "react-bootstrap";
+
+const API_URL = "http://127.0.0.1:8000"; // FastAPI backend
+
+function App() {
+  const [studentId, setStudentId] = useState(1);
+  const [grades, setGrades] = useState([]);
+  const [average, setAverage] = useState(null);
+  const [newGrade, setNewGrade] = useState({
+    course: "",
+    score: 0,
+    semester: "Semester 1",
+    due_date: ""
+  });
+
+  const [tasks, setTasks] = useState([]);
+  const [newTask, setNewTask] = useState({
+    title: "",
+    description: "",
+    tags: []
+  });
+
+  const [message, setMessage] = useState(null);
+
+  // Fetch grades
+  const fetchGrades = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/students/${studentId}/grades`);
+      setGrades(res.data.grades);
+      setMessage({ type: "success", text: "Grades loaded successfully!" });
+    } catch (err) {
+      setMessage({ type: "danger", text: "Failed to load grades." });
+    }
+  };
+
+  // Fetch average
+  const fetchAverage = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/students/${studentId}/average`);
+      setAverage(res.data.average);
+      setMessage({ type: "success", text: "Average calculated successfully!" });
+    } catch (err) {
+      setMessage({ type: "warning", text: "No grades found for this student." });
+    }
+  };
+
+  // Add grade
+  const addGrade = async () => {
+    try {
+      await axios.post(`${API_URL}/students/${studentId}/grades`, newGrade);
+      fetchGrades();
+      fetchAverage();
+      setMessage({ type: "success", text: "Grade added successfully!" });
+    } catch (err) {
+      setMessage({ type: "danger", text: "Failed to add grade." });
+    }
+  };
+
+  // Add task
+  const addTask = async () => {
+    try {
+      const res = await axios.post(`${API_URL}/tasks`, newTask);
+      setTasks([...tasks, res.data]);
+      setMessage({ type: "success", text: "Task added successfully!" });
+    } catch (err) {
+      setMessage({ type: "danger", text: "Failed to add task." });
+    }
+  };
+
+  return (
+    <Container className="mt-4">
+      <h1 className="text-center text-primary mb-4">📘 Student Grades & Tasks</h1>
+
+      {message && <Alert variant={message.type}>{message.text}</Alert>}
+
+      {/* Grades Section */}
+      <Card className="mb-4 shadow">
+        <Card.Body>
+          <Card.Title>Grades for Student {studentId}</Card.Title>
+          <Row className="mb-2">
+            <Col>
+              <Button variant="info" onClick={fetchGrades} className="me-2">Load Grades</Button>
+              <Button variant="success" onClick={fetchAverage}>Get Average</Button>
+            </Col>
+          </Row>
+          {average !== null && <p><strong>Average Score:</strong> {average}</p>}
+          <ListGroup>
+            {grades.map((g) => (
+              <ListGroup.Item key={g.grade_id}>
+                <strong>{g.course}</strong> — {g.score} ({g.semester}) due {g.due_date}
+              </ListGroup.Item>
+            ))}
+          </ListGroup>
+
+          <h5 className="mt-3">➕ Add Grade</h5>
+          <Form>
+            <Row>
+              <Col><Form.Control placeholder="Course" onChange={(e) => setNewGrade({ ...newGrade, course: e.target.value })} /></Col>
+              <Col><Form.Control type="number" placeholder="Score" onChange={(e) => setNewGrade({ ...newGrade, score: parseFloat(e.target.value) })} /></Col>
+              <Col>
+                <Form.Select onChange={(e) => setNewGrade({ ...newGrade, semester: e.target.value })}>
+                  <option>Semester 1</option>
+                  <option>Semester 2</option>
+                </Form.Select>
+              </Col>
+              <Col><Form.Control type="date" onChange={(e) => setNewGrade({ ...newGrade, due_date: e.target.value })} /></Col>
+              <Col><Button variant="primary" onClick={addGrade}>Add Grade</Button></Col>
+            </Row>
+          </Form>
+        </Card.Body>
+      </Card>
+
+      {/* Tasks Section */}
+      <Card className="shadow">
+        <Card.Body>
+          <Card.Title>Tasks</Card.Title>
+          <ListGroup>
+            {tasks.map((t) => (
+              <ListGroup.Item key={t.id}>
+                <strong>{t.title}</strong> — {t.description} [{t.tags.join(", ")}]
+              </ListGroup.Item>
+            ))}
+          </ListGroup>
+
+          <h5 className="mt-3">➕ Add Task</h5>
+          <Form>
+            <Row>
+              <Col><Form.Control placeholder="Title" onChange={(e) => setNewTask({ ...newTask, title: e.target.value })} /></Col>
+              <Col><Form.Control placeholder="Description" onChange={(e) => setNewTask({ ...newTask, description: e.target.value })} /></Col>
+              <Col><Form.Control placeholder="Tags (comma separated)" onChange={(e) => setNewTask({ ...newTask, tags: e.target.value.split(",") })} /></Col>
+              <Col><Button variant="primary" onClick={addTask}>Add Task</Button></Col>
+            </Row>
+          </Form>
+        </Card.Body>
+      </Card>
+    </Container>
+  );
+}
+
+export default App;
