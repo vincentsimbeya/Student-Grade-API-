@@ -18,6 +18,7 @@ class TaskCreate(BaseModel):
     title: str = Field(..., min_length=2, max_length=100, description="Task title")
     description: Optional[str] = Field(None, max_length=300, description="Task description")
     priority: Literal["Low", "Medium", "High"] = "Medium"
+    assigned_to: Optional[str] = Field(None, max_length=100)
 
 
 class TaskUpdate(BaseModel):
@@ -25,6 +26,7 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=300)
     completed: Optional[bool] = None
     priority: Optional[Literal["Low", "Medium", "High"]] = None
+    assigned_to: Optional[str] = Field(None, max_length=100)
 
 
 class Task(BaseModel):
@@ -33,6 +35,7 @@ class Task(BaseModel):
     description: Optional[str] = None
     completed: bool
     priority: Literal["Low", "Medium", "High"]
+    assigned_to: Optional[str] = None
 
 
 @app.get("/", tags=["Health"])
@@ -52,7 +55,8 @@ def create_task(task: TaskCreate):
         "title": task.title,
         "description": task.description,
         "completed": False,
-        "priority": task.priority
+        "priority": task.priority,
+        "assigned_to": task.assigned_to
     }
     tasks_db.append(new_task)
     next_task_id += 1
@@ -84,6 +88,8 @@ def update_task(task_update: TaskUpdate, task_id: int = Path(..., gt=0)):
                 task["completed"] = task_update.completed
             if task_update.priority is not None:
                 task["priority"] = task_update.priority
+            if task_update.assigned_to is not None:
+                task["assigned_to"] = task_update.assigned_to
             return task
     raise HTTPException(status_code=404, detail="Task not found")
 
